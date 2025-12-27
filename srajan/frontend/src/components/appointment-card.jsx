@@ -137,8 +137,22 @@ export function AppointmentCard({ appointment, userRole, refetchAppointments }) 
 
   // Join video call
   const handleJoinVideoCall = async () => {
+    if (!appointment.videoSessionId) {
+      toast.error("Video session not available. Please try again later.");
+      return;
+    }
     const appId = import.meta.env.VITE_AGORA_APP_ID || 'c3f5a580fd8d475cba3e64eee2027e3f';
-    navigate(`/video-call?channel=${appointment.videoSessionId}&token=${encodeURIComponent(appointment.videoToken)}&appId=${appId}&uid=${appointment.patientId._id||appointment.patientId}`)
+    // UID should be the current user's MongoDB _id
+    // For patient: use appointment.patientId._id (their own ID)
+    // For doctor: use appointment.doctorId._id (their own ID)
+    const uid = userRole.toLowerCase() === "doctor" 
+      ? (appointment.doctorId?._id || appointment.doctorId)
+      : (appointment.patientId?._id || appointment.patientId);
+    if (appointment.videoToken) {
+      navigate(`/video-call?channel=${appointment.videoSessionId}&token=${encodeURIComponent(appointment.videoToken)}&appId=${appId}&uid=${uid}`)
+    } else {
+      navigate(`/video-call?channel=${appointment.videoSessionId}&uid=${uid}`)
+    }
   };
 
   // Success effects
@@ -182,6 +196,17 @@ export function AppointmentCard({ appointment, userRole, refetchAppointments }) 
   const otherParty = userRole.toLowerCase() === "doctor" ? appointment.patientId : appointment.doctorId;
   const otherPartyLabel = userRole.toLowerCase() === "doctor" ? "Patient" : "Doctor";
   const otherPartyIcon = userRole.toLowerCase() === "doctor" ? <User /> : <StethoscopeIcon />;
+  
+  // Safety check: if otherParty is not populated or is just an ID, return early
+  if (!otherParty || typeof otherParty === 'string' || !otherParty.name) {
+    return (
+      <Card className="border-emerald-900/20">
+        <CardContent className="p-4">
+          <p className="text-muted-foreground">Loading appointment details...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>

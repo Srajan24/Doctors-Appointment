@@ -70,7 +70,11 @@ export default function EmergencyCallPage() {
       // If call was accepted, join the video call
       if (data.call?.status === "accepted" && data.call.videoSessionId) {
         const appId = import.meta.env.VITE_AGORA_APP_ID || 'c3f5a580fd8d475cba3e64eee2027e3f';
-        navigate(`/video-call?channel=${data.call.videoSessionId}&token=${encodeURIComponent(data.call.videoToken)}&appId=${appId}&uid=${data.call.patientId._id || data.call.patientId}`);
+        if (data.call.signaling) {
+          navigate(`/video-call?channel=${data.call.videoSessionId}&uid=${data.call.patientId._id || data.call.patientId}`);
+        } else {
+          navigate(`/video-call?channel=${data.call.videoSessionId}&token=${encodeURIComponent(data.call.videoToken)}&appId=${appId}&uid=${data.call.patientId._id || data.call.patientId}`);
+        }
       }
     } catch (error) {
       console.error("Error checking call status:", error);

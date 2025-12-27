@@ -18,7 +18,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-connectDb()
+// Connect to database (cached connection for serverless)
+connectDb().catch(err => {
+  console.error("❌ Database connection failed:", err);
+});
 
 
 // Middleware
@@ -33,18 +36,18 @@ app.use("/api/doctor", doctor_router);
 app.use("/api/appointments", appointment_router)
 app.use("/api/patient", patient_router)
 app.use("/api/payout", payout_router)
-app.use("/api/instant-call", instantCall_router)
-
+// Emergency/instant-call functionality temporarily disabled
+// app.use("/api/instant-call", instantCall_router)
+// Socket.IO / WebRTC signaling removed to prevent crashes while emergency call is unstable
 
 // Test route
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-// For local development
+// For local development start HTTP server
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }
 
-// Export for Vercel
 export default app;

@@ -91,7 +91,12 @@ export default function DoctorCallRequests() {
         toast.success("Call accepted! Connecting...");
         // Join video call
         const appId = import.meta.env.VITE_AGORA_APP_ID || 'c3f5a580fd8d475cba3e64eee2027e3f';
-        navigate(`/video-call?channel=${data.videoSessionId}&token=${encodeURIComponent(data.videoToken)}&appId=${appId}&uid=${user.id}`);
+        // If backend returned signaling flag, omit token and appId
+        if (data.signaling) {
+          navigate(`/video-call?channel=${data.videoSessionId}&uid=${user.id}`);
+        } else {
+          navigate(`/video-call?channel=${data.videoSessionId}&token=${encodeURIComponent(data.videoToken)}&appId=${appId}&uid=${user.id}`);
+        }
       } else {
         toast.success("Call request declined");
         fetchPendingCalls();

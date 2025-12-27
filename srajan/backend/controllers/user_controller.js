@@ -104,7 +104,7 @@ export async function setUserRole(req, res) {
       return res.json({ success: true, redirect: "/doctor/verification" });
     }
   } catch (error) {
-    console.error("Failed to set user role:", error);
+    console.error("Fail to set user role:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 }

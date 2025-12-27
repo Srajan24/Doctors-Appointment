@@ -151,22 +151,31 @@ export const respondToInstantCall = async (req, res) => {
       const rawChannel = `instant_call_${uuidv4().replace(/-/g, "_")}`;
       const channelName = rawChannel.slice(0, 64);
 
-      // Generate Agora token
+      // If Agora env vars are present, generate a token. Otherwise return a signaling-based session.
       const appId = process.env.AGORA_APP_ID;
       const appCertificate = process.env.AGORA_APP_CERTIFICATE;
-      const role = RtcRole.PUBLISHER;
-      const expireTime = 3600; // 1 hour
-      const currentTime = Math.floor(Date.now() / 1000);
-      const privilegeExpireTime = currentTime + expireTime;
+      let token = null;
+      let usingSignaling = false;
 
-      const token = RtcTokenBuilder.buildTokenWithUid(
-        appId,
-        appCertificate,
-        channelName,
-        doctor._id.toString(),
-        role,
-        privilegeExpireTime
-      );
+      if (appId && appCertificate) {
+        const role = RtcRole.PUBLISHER;
+        const expireTime = 3600; // 1 hour
+        const currentTime = Math.floor(Date.now() / 1000);
+        const privilegeExpireTime = currentTime + expireTime;
+
+        token = RtcTokenBuilder.buildTokenWithUid(
+          appId,
+          appCertificate,
+          channelName,
+          doctor._id.toString(),
+          role,
+          privilegeExpireTime
+        );
+      } else {
+        // No Agora credentials — fallback to Socket.IO WebRTC signaling
+        usingSignaling = true;
+        token = null; // client will use signaling flow
+      }
 
       // Deduct credits from patient
       const patient = instantCall.patientId;
@@ -196,7 +205,8 @@ export const respondToInstantCall = async (req, res) => {
       // Update instant call
       instantCall.status = "accepted";
       instantCall.videoSessionId = channelName;
-      instantCall.videoToken = token;
+      instantCall.videoToken = token; // may be null for signaling mode
+      instantCall.usingSignaling = usingSignaling;
       instantCall.startTime = new Date();
       await instantCall.save({ session });
 
@@ -207,6 +217,7 @@ export const respondToInstantCall = async (req, res) => {
         instantCall,
         videoSessionId: channelName,
         videoToken: token,
+        signaling: usingSignaling,
         appId: appId,
         message: "Call accepted! Connecting to video..."
       });

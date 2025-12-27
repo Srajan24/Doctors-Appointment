@@ -72,18 +72,7 @@ export default function Header() {
                             {/* Doctor Links */}
                             {user?.role === "doctor" && (
                                 <>
-                                    <Link to="/doctor/call-requests">
-                                        <Button
-                                            variant="outline"
-                                            className="hidden md:inline-flex items-center gap-2 bg-red-900/10 border-red-700/30 hover:bg-red-900/20"
-                                        >
-                                            <PhoneIncoming className="h-4 w-4 text-red-400" />
-                                            <span className="text-red-400">Call Requests</span>
-                                        </Button>
-                                        <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                                            <PhoneIncoming className="h-4 w-4 text-red-400" />
-                                        </Button>
-                                    </Link>
+                                    {/* Call requests UI disabled */}
                                     <Link to="/doctor">
                                         <Button
                                             variant="outline"
@@ -102,18 +91,7 @@ export default function Header() {
                             {/* Patient Links */}
                             {user?.role === "patient" && (
                                 <>
-                                    <Link to="/emergency-call">
-                                        <Button
-                                            variant="outline"
-                                            className="hidden md:inline-flex items-center gap-2 bg-red-900/10 border-red-700/30 hover:bg-red-900/20"
-                                        >
-                                            <Phone className="h-4 w-4 text-red-400" />
-                                            <span className="text-red-400">Emergency Call</span>
-                                        </Button>
-                                        <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                                            <Phone className="h-4 w-4 text-red-400" />
-                                        </Button>
-                                    </Link>
+                                    {/* Emergency call UI disabled */}
                                     <Link to="/appointments">
                                         <Button
                                             variant="outline"

@@ -53,9 +53,8 @@ export default function Home() {
               <img
                 src="/banner2.png"
                 alt="Doctor consultation"
-                fill
-                priority
-                className="object-cover md:pt-14 rounded-xl"
+                className="rounded-xl w-full h-full"
+                style={{ objectFit: 'cover', objectPosition: 'center top' }}
               />
             </div>
           </div>

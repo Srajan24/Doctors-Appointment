@@ -1,24 +1,42 @@
 {
   "name": "doctor-appointment-app",
   "version": "1.0.0",
-  "description": "Doctor appointment system with video calling and emergency call feature",
+  "description": "A full-stack healthcare appointment booking system with video consultation capabilities",
+  "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "build": "cd frontend && npm run build",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "lint": "cd frontend && npm run lint"
   },
   "keywords": [
     "doctor",
     "appointment",
+    "healthcare",
     "video-calling",
-    "healthcare"
+    "react",
+    "nodejs",
+    "mongodb",
+    "agora"
   ],
   "author": "Srajan Gupta",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/doctor-appointment-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/doctor-appointment-app/issues"
+  },
+  "homepage": "https://github.com/yourusername/doctor-appointment-app#readme",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   }
 }

@@ -1,8 +1,11 @@
 {
-  "name": "frontend",
+  "name": "doctor-appointment-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Frontend application for doctor appointment booking system",
+  "author": "Srajan Gupta",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build && mv dist/_redirects.txt dist/_redirects",
@@ -20,8 +23,9 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.13",
     "@tailwindcss/vite": "^4.1.12",
-    "agora-rtc-sdk-ng": "^4.24.0",
+    
     "axios": "^1.11.0",
+    "socket.io-client": "^4.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

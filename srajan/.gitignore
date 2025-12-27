@@ -6,7 +6,7 @@
 
 # Dependencies
 node_modules/
-package-lock.json
+# Note: package-lock.json should be committed for consistent dependencies
 
 # Build outputs
 dist/

@@ -261,7 +261,7 @@ export const getDoctorAppointments = async (req, res) => {
       doctorId: doctor._id,
       status: { $in: ["scheduled"] },
     })
-      .populate("patientId") // equivalent to Prisma `include: { patient: true }`
+      .populate("patientId", "_id name email") // populate patient with specific fields
       .sort({ startTime: 1 }); // ascending order
 
     return res.status(200).json({ appointments });

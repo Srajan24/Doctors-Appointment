@@ -8,11 +8,12 @@ function useQuery() {
 export default function VideoCallPage() {
   const query = useQuery();
   const channel = query.get("channel"); // previously sessionId
-  const token = decodeURIComponent(query.get("token"));
+  const tokenParam = query.get("token");
+  const token = tokenParam ? decodeURIComponent(tokenParam) : null;
   const appId = query.get("appId");
   const uid = query.get("uid") ;
 
-  if (!channel || !token || !appId) return <p>Invalid video call parameters.</p>;
+  if (!channel) return <p>Invalid video call parameters.</p>;
 
   return <VideoCall channel={channel} token={token} appId={appId} uid={uid} />;
 }

@@ -96,7 +96,7 @@ export const bookAppointment = async (req, res) => {
     // 5️⃣ Check overlapping appointments
     const overlappingAppointment = await Appointment.findOne({
       doctorId: doctor._id,
-      status: "SCHEDULED",
+      status: "scheduled",
       $or: [
         { startTime: { $lte: startTime }, endTime: { $gt: startTime } },
         { startTime: { $lt: endTime }, endTime: { $gte: endTime } },
@@ -357,24 +357,27 @@ export async function generateVideoToken(req, res) {
       return res.status(400).json({ error: "The call will be available 30 minutes before the scheduled time" });
     }
 
-    // Generate token
+    // Generate token using Agora
+    const appId = process.env.AGORA_APP_ID;
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+    const role = RtcRole.PUBLISHER;
+    const expireTime = 3600; // 1 hour
+
+    const currentTime = Math.floor(Date.now() / 1000);
     const appointmentEndTime = new Date(appointment.endTime);
-    const expirationTime = Math.floor(appointmentEndTime.getTime() / 1000) + 60 * 60; // 1 hour after end
+    const privilegeExpireTime = Math.floor(appointmentEndTime.getTime() / 1000) + expireTime;
 
-    const connectionData = JSON.stringify({
-      name: user.name,
-      role: user.role,
-      userId: user.id,
-    });
-
-    const token = vonage.video.generateClientToken(appointment.videoSessionId, {
-      role: "publisher",
-      expireTime: expirationTime,
-      data: connectionData,
-    });
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      appId,
+      appCertificate,
+      appointment.videoSessionId,
+      user._id.toString(),
+      role,
+      privilegeExpireTime
+    );
 
     // Save token to appointment
-    appointment.videoSessionToken = token;
+    appointment.videoToken = token;
     await appointment.save();
 
     res.json({

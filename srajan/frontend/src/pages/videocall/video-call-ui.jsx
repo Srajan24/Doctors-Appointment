@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { createClient, createMicrophoneAndCameraTracks } from "agora-rtc-sdk-ng";
+import { io } from "socket.io-client";
+import API_BASE_URL from "../../config/api.js";
 
 export default function VideoCall({ channel, token, appId, uid }) {
   console.log('kjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj', token)
@@ -29,8 +31,8 @@ export default function VideoCall({ channel, token, appId, uid }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!channel || !token || !appId) {
-      toast.error("Missing required video call parameters");
+    if (!channel) {
+      toast.error("Missing required video call channel");
       navigate("/appointments");
       return;
     }
@@ -39,45 +41,144 @@ export default function VideoCall({ channel, token, appId, uid }) {
 
     const initCall = async () => {
       try {
-        const client = createClient({ mode: "rtc", codec: "vp8" });
-        clientRef.current = client;
+        // If token is provided, use Agora (existing flow)
+        if (token) {
+          const client = createClient({ mode: "rtc", codec: "vp8" });
+          clientRef.current = client;
 
-        await client.join(appId, channel, token, uid);
+          await client.join(appId, channel, token, uid);
 
-        const [microphoneTrack, cameraTrack] = await createMicrophoneAndCameraTracks();
-        localTracksRef.current = [microphoneTrack, cameraTrack];
-        cameraTrack.play(localVideoRef.current);
+          const [microphoneTrack, cameraTrack] = await createMicrophoneAndCameraTracks();
+          localTracksRef.current = [microphoneTrack, cameraTrack];
+          cameraTrack.play(localVideoRef.current);
 
-        await client.publish(localTracksRef.current);
-        setIsConnected(true);
-        setIsLoading(false);
+          await client.publish(localTracksRef.current);
+          setIsConnected(true);
+          setIsLoading(false);
 
-        client.on("user-published", async (user, mediaType) => {
-          await client.subscribe(user, mediaType);
-          if (mediaType === "video") {
-            const remoteDiv = document.createElement("div");
-            remoteDiv.id = user.uid;
-            remoteDiv.style.width = "100%";
-            remoteDiv.style.height = "100%";
-            remoteContainerRef.current.appendChild(remoteDiv);
-            user.videoTrack.play(remoteDiv);
+          client.on("user-published", async (user, mediaType) => {
+            await client.subscribe(user, mediaType);
+            if (mediaType === "video") {
+              const remoteDiv = document.createElement("div");
+              remoteDiv.id = user.uid;
+              remoteDiv.style.width = "100%";
+              remoteDiv.style.height = "100%";
+              remoteContainerRef.current.appendChild(remoteDiv);
+              user.videoTrack.play(remoteDiv);
+            }
+            if (mediaType === "audio") {
+              user.audioTrack.play();
+            }
+          });
+
+          client.on("user-unpublished", (user) => {
+            const remoteDiv = document.getElementById(user.uid);
+            if (remoteDiv) remoteDiv.remove();
+          });
+
+          client.on("user-left", (user) => {
+            const remoteDiv = document.getElementById(user.uid);
+            if (remoteDiv) remoteDiv.remove();
+          });
+        } else {
+          // Fallback: use Socket.IO signaling + WebRTC peer connection
+          const socket = io(API_BASE_URL);
+          const pc = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+          });
+
+          let localStream = null;
+          const isInitiatorRef = { current: false };
+
+          const handleRemoteStream = (stream) => {
+            // remove existing remote nodes
+            remoteContainerRef.current.innerHTML = "";
+            const remoteVideo = document.createElement("video");
+            remoteVideo.autoplay = true;
+            remoteVideo.playsInline = true;
+            remoteVideo.srcObject = stream;
+            remoteVideo.style.width = "100%";
+            remoteVideo.style.height = "100%";
+            remoteContainerRef.current.appendChild(remoteVideo);
+          };
+
+          pc.ontrack = (event) => {
+            const [stream] = event.streams;
+            handleRemoteStream(stream);
+            setIsConnected(true);
+            setIsLoading(false);
+          };
+
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              socket.emit('candidate', { room: channel, candidate: event.candidate });
+            }
+          };
+
+          socket.on('created', () => {
+            isInitiatorRef.current = true;
+          });
+
+          socket.on('start', async () => {
+            if (isInitiatorRef.current) {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit('offer', { room: channel, offer: pc.localDescription });
+            }
+          });
+
+          socket.on('offer', async ({ offer }) => {
+            if (!isInitiatorRef.current) {
+              await pc.setRemoteDescription(offer);
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              socket.emit('answer', { room: channel, answer: pc.localDescription });
+            }
+          });
+
+          socket.on('answer', async ({ answer }) => {
+            try {
+              await pc.setRemoteDescription(answer);
+            } catch (err) {
+              console.error('Error setting remote answer:', err);
+            }
+          });
+
+          socket.on('candidate', async ({ candidate }) => {
+            try {
+              if (candidate) await pc.addIceCandidate(candidate);
+            } catch (err) {
+              console.error('Error adding ICE candidate:', err);
+            }
+          });
+
+          socket.on('leave', () => {
+            setIsConnected(false);
+            // cleanup remote
+            remoteContainerRef.current.innerHTML = "";
+          });
+
+          // get local media and add to peer
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideoRef.current.srcObject = localStream;
+            localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+            localTracksRef.current = localStream.getTracks();
+          } catch (err) {
+            console.error('Failed to get local media:', err);
+            toast.error('Failed to access camera/microphone');
+            setIsLoading(false);
+            return;
           }
-          if (mediaType === "audio") {
-            user.audioTrack.play();
-          }
-        });
 
-        client.on("user-unpublished", (user) => {
-          const remoteDiv = document.getElementById(user.uid);
-          if (remoteDiv) remoteDiv.remove();
-        });
+          // join signaling room
+          socket.emit('join-room', { room: channel, uid });
 
-        client.on("user-left", (user) => {
-          const remoteDiv = document.getElementById(user.uid);
-          if (remoteDiv) remoteDiv.remove();
-        });
+          // store socket and pc for cleanup
+          clientRef.current = { socket, pc };
+        }
       } catch (error) {
-        console.error("Failed to initialize Agora call:", error);
+        console.error("Failed to initialize call:", error);
         toast.error("Failed to initialize video call");
         setIsLoading(false);
       }
@@ -87,29 +188,85 @@ export default function VideoCall({ channel, token, appId, uid }) {
 
     return () => {
       // Cleanup on unmount
-      localTracksRef.current.forEach(track => track.close());
-      clientRef.current?.leave();
+      try {
+        if (Array.isArray(localTracksRef.current)) {
+          localTracksRef.current.forEach(track => {
+            try { if (track.stop) track.stop(); } catch (e) {}
+            try { if (track.close) track.close(); } catch (e) {}
+          });
+        }
+
+        if (clientRef.current) {
+          // Agora client
+          if (typeof clientRef.current.leave === 'function') {
+            clientRef.current.leave();
+          } else if (clientRef.current.socket) {
+            // signaling client
+            try { clientRef.current.socket.emit('leave', { room: channel }); } catch (e) {}
+            try { clientRef.current.pc && clientRef.current.pc.close(); } catch (e) {}
+            try { clientRef.current.socket.disconnect(); } catch (e) {}
+          }
+        }
+      } catch (e) {
+        console.error('Error during cleanup:', e);
+      }
+
       clientRef.current = null;
     };
   }, [channel, token, appId, uid, navigate]);
 
   const toggleVideo = () => {
-    if (localTracksRef.current[1]) {
+    // Agora track
+    if (token && localTracksRef.current[1] && typeof localTracksRef.current[1].setEnabled === 'function') {
       localTracksRef.current[1].setEnabled(!isVideoEnabled);
+      setIsVideoEnabled(prev => !prev);
+      return;
+    }
+
+    // Native MediaStreamTrack
+    const videoTrack = (localTracksRef.current || []).find(t => t.kind === 'video') || localTracksRef.current[1];
+    if (videoTrack) {
+      videoTrack.enabled = !isVideoEnabled;
       setIsVideoEnabled(prev => !prev);
     }
   };
 
   const toggleAudio = () => {
-    if (localTracksRef.current[0]) {
+    if (token && localTracksRef.current[0] && typeof localTracksRef.current[0].setEnabled === 'function') {
       localTracksRef.current[0].setEnabled(!isAudioEnabled);
+      setIsAudioEnabled(prev => !prev);
+      return;
+    }
+
+    const audioTrack = (localTracksRef.current || []).find(t => t.kind === 'audio') || localTracksRef.current[0];
+    if (audioTrack) {
+      audioTrack.enabled = !isAudioEnabled;
       setIsAudioEnabled(prev => !prev);
     }
   };
 
   const endCall = () => {
-    localTracksRef.current.forEach(track => track.close());
-    clientRef.current?.leave();
+    try {
+      if (Array.isArray(localTracksRef.current)) {
+        localTracksRef.current.forEach(track => {
+          try { if (track.stop) track.stop(); } catch (e) {}
+          try { if (track.close) track.close(); } catch (e) {}
+        });
+      }
+
+      if (clientRef.current) {
+        if (typeof clientRef.current.leave === 'function') {
+          clientRef.current.leave();
+        } else if (clientRef.current.socket) {
+          try { clientRef.current.socket.emit('leave', { room: channel }); } catch (e) {}
+          try { clientRef.current.pc && clientRef.current.pc.close(); } catch (e) {}
+          try { clientRef.current.socket.disconnect(); } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.error('Error ending call:', e);
+    }
+
     clientRef.current = null;
     navigate("/appointments");
   };

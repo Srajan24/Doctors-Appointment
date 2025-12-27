@@ -12,14 +12,12 @@ import DoctorSpecialtyPage from "./pages/doctors/doctorSpecialityListing"
 import DoctorDashboardPage from "./pages/doctors/doctorDashboardPage"
 import DoctorProfilePage from "./pages/doctors/doctorProfile"
 import PatientAppointmentsPage from "./pages/appointments/appointments-page"
-import VideoCallPage from "./pages/videocall/video-call"
 import Unauthorized from "./pages/Unauthorized"
 import ProtectedRoute from "./routes/ProtectedRoute"
 import SinginPage from "./routes/auth/singin"
 import SignupPage from "./routes/auth/signup"
 import DoctorEarnings from "./pages/doctors/doctorEarningsPage"
-import EmergencyCallPage from "./pages/instant-call/emergency-call-page"
-import DoctorCallRequests from "./pages/instant-call/doctor-call-requests"
+// Video / instant-call pages removed to avoid runtime errors
 
 function App() {
   return (
@@ -37,15 +35,14 @@ function App() {
           <Route path='/doctors' element={<DoctorsPage />} />
           <Route path='/doctors/:speciality' element={<DoctorSpecialtyPage />} />
           <Route path='/doctors/:speciality/:doctorId' element={<DoctorProfilePage />} />
-          <Route path='/video-call' element={<VideoCallPage />} />
-          <Route path='/emergency-call' element={<EmergencyCallPage />} />
+          {/* Video / emergency call routes disabled */}
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
           <Route path='/doctor' element={<DoctorDashboardPage />} />
           <Route path='/doctor/verification' element={<VerificationPage />} />
           <Route path='/doctor-payments' element={<DoctorEarnings />} />
-          <Route path='/doctor/call-requests' element={<DoctorCallRequests />} />
+          {/* Doctor call requests UI disabled */}
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
