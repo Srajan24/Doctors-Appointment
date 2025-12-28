@@ -27,3 +27,4 @@ The project requires Node.js 18.x or higher. This is specified in:
 - `package.json` engines field
 - `vercel.json` runtime configuration (nodejs20.x)
 
+

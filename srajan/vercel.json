@@ -1,12 +1,3 @@
 {
-  "buildCommand": "cd backend && npm install",
-  "outputDirectory": "backend",
-  "installCommand": "cd backend && npm install",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/backend"
-    }
-  ]
+  "comment": "This file should not be used if deploying backend separately. Delete this file or ensure Vercel project root is set to 'srajan/backend'"
 }
