@@ -45,9 +45,12 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-// For local development start HTTP server
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Start server for traditional hosting (Render, Heroku, Railway, etc.)
+// Only skip if running on Vercel (serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 }
 
 export default app;
